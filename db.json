@@ -3,6 +3,7 @@
     {
       "id": 1,
       "name": "mehrdad",
+	  "email":"ads",
       "username": "mehrdad",
       "crime": 0,
       "role": "ADMIN"
@@ -11,8 +12,8 @@
       "id": 2,
       "name": "ali",
       "username": "reza",
-      "crime": 0,
-      "role": "USER"
+      "crime": 555,
+      "role": "ADMIN"
     },
     {
       "id": 3,
@@ -26,6 +27,13 @@
       "name": "rrrr",
       "username": "4545",
       "email": "56asd",
+      "crime": 0
+    },
+    {
+      "id": "8b9c1919-cdcd-44c7-8004-dd7ff4816c7c",
+      "name": "reza",
+      "username": "sss",
+      "email": "ss",
       "crime": 0
     }
   ],

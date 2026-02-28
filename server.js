@@ -3,7 +3,6 @@ const fs = require("fs");
 const port = 8880;
 const url = require("url");
 const db = require("./db.json");
-console.log(db)
 const server = http.createServer((req, res) => {
 	if(req.method === 'GET' && req.url === '/api/users'){
 		fs.readFile('db.json',(err, db) => {
@@ -14,10 +13,11 @@ const server = http.createServer((req, res) => {
 			res.writeHead(200, {"Content-Type":"application/json"});
 			res.write(JSON.stringify(data.users));
 			res.end();
-			console.log(data.users);
+
 			
 		})
-	}else if(req.method === 'GET' && req.url === '/api/books'){
+	}
+	else if(req.method === 'GET' && req.url === '/api/books'){
 		fs.readFile('db.json',(err, db) => {
 			if(err){
 				throw err;
@@ -26,10 +26,10 @@ const server = http.createServer((req, res) => {
 			res.writeHead(200, {"Content-Type":"application/json"});
 			res.write(JSON.stringify(data.books));
 			res.end();
-			console.log(data.users);
 			
 		})
-	}else if(req.method === "DELETE" && req.url.startsWith("/api/books")){
+	}
+	else if(req.method === "DELETE" && req.url.startsWith("/api/books")){
 		const parsedUrl = url.parse(req.url, true);
 		const bookID = Number(parsedUrl.query.id);
 		const newBooks = db.books.filter(book => book.id !== bookID);
@@ -54,7 +54,8 @@ const server = http.createServer((req, res) => {
 		});
 			
 		}
-	}else if(req.method === "POST" && req.url === "/api/books"){
+	}
+	else if(req.method === "POST" && req.url === "/api/books"){
 		let book = "";
 		
 		req.on("data" , (data)=>{
@@ -62,7 +63,6 @@ const server = http.createServer((req, res) => {
 		})
 		
 		req.on('end', () => {
-			console.log(JSON.parse(book));
 			const newBook = {id : crypto.randomUUID(), ...JSON.parse(book), free: 1}
 			db.books.push(newBook);
 			fs.writeFile("db.json", JSON.stringify(db, null, 2), (err)=>{
@@ -70,10 +70,10 @@ const server = http.createServer((req, res) => {
 					
 				}
 			});
-			console.log(newBook);
 			res.end("New Book Added");
 		});
-	}else if(req.method === "PUT" && req.url.startsWith("/api/books")){
+	}
+	else if(req.method === "PUT" && req.url.startsWith("/api/books")){
 		const parsedUrl = url.parse(req.url, true);
 		const bookID = parsedUrl.query.id;
 		let bookNewInfo = "";
@@ -102,18 +102,27 @@ const server = http.createServer((req, res) => {
 			})
 		})
 		
-	}else if(req.method === "POST" && req.url === "/api/users"){
+	}
+	else if(req.method === "POST" && req.url === "/api/users"){
 		let user = "";
 		req.on("data", (data)=>{
 			user += data.toString();
 		})
 		
 		req.on("end", ()=>{
+			
 			const {name, username, email} =JSON.parse(user);
 			
 			
+			const userExist = db.users.find(user => user.email === email || user.username === username)
+			if(userExist){
+				res.writeHead(409,{"Content-Type":"application/json"})
+				res.write(JSON.stringify({message:"User already exsit"}))
+				res.end()
+			}
+			
 			if(name ==="" || username===""||email===""){
-				res.writeHead(200,{"Content-Type":"application/json"})
+				res.writeHead(422,{"Content-Type":"application/json"})
 				res.write(JSON.stringify({message:"User data is not ok"}))
 				res.end()
 			}else{
@@ -130,15 +139,33 @@ const server = http.createServer((req, res) => {
 						throw err;
 					}
 					
-					res.writeHead(200,{"Content-Type":"application/json"})
-					res.write(JSON.stringify({messae:"Book Updated Successfuly"}));
-					res.end();
 				})
+					res.writeHead(200,{"Content-Type":"application/json"})
+					res.write(JSON.stringify({messae:"user Added Successfuly"}));
+					res.end();
 			}
 			
 		})
 		
-	}else if(req.method === "PUT" && req.url.startsWith("/api/users")){
+	}
+	else if(req.method === "PUT" && req.url.startsWith("/api/users/upgrade")){
+		const parsedUrl = url.parse(req.url, true);
+		const userID = parsedUrl.query.id;
+		db.users.forEach(user =>{
+			if(user.id === Number(userID)){
+				user.role = "ADMIN";
+			}
+		})
+		fs.writeFile("db.json",JSON.stringify(db, null, 2), (err) =>{
+			if(err){
+				throw err;
+			}
+			res.writeHead(200 , {"Content-Type":"application/json"})
+			res.write(JSON.stringify({message: "User upgarded~!!"}));
+			res.end();
+		})  
+	}
+	else if(req.method === "PUT" && req.url.startsWith("/api/users")){
 		const parsedUrl = url.parse(req.url, true);
 		const userID = parsedUrl.query.id;
 		let reqBody= "";
@@ -147,8 +174,13 @@ const server = http.createServer((req, res) => {
 		})
 		
 		req.on("end",() =>{
+			if(!reqBody){
+				res.writeHead(400, {"Content-Type":"application/json"});
+				res.write(JSON.stringify({message: "empty!"}));
+				
+				res.end();
+			}
 			const {crime}=JSON.parse(reqBody);
-			
 			db.users.forEach((user)=>{
 				if(user.id === Number(userID)){
 					user.crime = crime;
@@ -160,7 +192,7 @@ const server = http.createServer((req, res) => {
 				}
 				
 				res.writeHead(200, {"Content-Type":"application/json"});
-				res.write("Done!");
+				res.write(JSON.stringify({message: "DONE!"}));
 				
 				res.end();
 				
@@ -168,7 +200,37 @@ const server = http.createServer((req, res) => {
 		});
 		
 	}
-});
+	else if(req.method === "POST" && req.url === "/api/users/login"){
+		let user = "";
+		req.on("data", (data)=>{
+			user += data.toString();
+		})
+		req.on("end",()=>{
+			const {username,email} = JSON.parse(user);
+			const mainUser = db.users.find(user => 
+				user.username === username || user.email === email
+			)
+			
+			if(mainUser){
+				res.writeHead(200, {"Content-Type":"application/json"});
+				res.write(JSON.stringify({username: mainUser.username, email: mainUser.email}));
+				
+				res.end();
+			}else{
+				res.writeHead(401, {"Content-Type":"application/json"});
+				res.write(JSON.stringify({message: "User Not Found"}));
+				
+				res.end();
+			}
+			
+			
+		})
+	}
+}); // --> http.createServer((req, res) => {}
+	
+
+
+
 
 server.listen(port , () => {
 	console.log(`Server Running On Port: ${port}`)
