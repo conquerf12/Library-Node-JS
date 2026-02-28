@@ -73,5 +73,8 @@
       "email": "56asd",
       "crime": 0
     }
+  ],
+  "rents":[
+	  {"id":1, "userID":1,"bookID":2}
   ]
 }
